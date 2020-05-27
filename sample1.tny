@@ -1,0 +1,8 @@
+{
+	sample program
+	compute adding
+}
+read x;
+read y;
+z := x + y;
+write z
