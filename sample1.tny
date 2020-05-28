@@ -2,6 +2,9 @@
 	sample program
 	compute adding
 }
+int x;
+char y;
+;
 read x;
 read y;
 z := x + y;

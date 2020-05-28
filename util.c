@@ -54,6 +54,38 @@ void printToken( TokenType token, const char* tokenString )
       fprintf(listing,"Unknown token: %d\n",token);
   }
 }
+/* Function newDeclNode creates a new declaration 
+ * node for syntax tree construction
+ */
+TreeNode * newProgNode()
+{ TreeNode * t = (TreeNode *) malloc(sizeof(TreeNode));
+  int i;
+  if (t==NULL)
+    fprintf(listing,"Out of memory error at line %d\n",lineno);
+  else {
+    for (i=0;i<MAXCHILDREN;i++) t->child[i] = NULL;
+    t->sibling = NULL;
+    t->nodekind = DeclK;
+    //t->kind.decl = kind;
+    t->lineno = lineno;
+  }
+  return t;
+}
+
+TreeNode * newDeclNode(DeclKind kind)
+{ TreeNode * t = (TreeNode *) malloc(sizeof(TreeNode));
+  int i;
+  if (t==NULL)
+    fprintf(listing,"Out of memory error at line %d\n",lineno);
+  else {
+    for (i=0;i<MAXCHILDREN;i++) t->child[i] = NULL;
+    t->sibling = NULL;
+    t->nodekind = DeclK;
+    t->kind.decl = kind;
+    t->lineno = lineno;
+  }
+  return t;
+}
 
 /* Function newStmtNode creates a new statement
  * node for syntax tree construction
@@ -170,7 +202,21 @@ void printTree( TreeNode * tree )
           break;
       }
     }
-    else fprintf(listing,"Unknown node kind\n");
+    else if (tree->nodekind==DeclK)
+	{
+		switch (tree->kind.decl) {
+			case IntK:
+				fprintf(listing,"int\n");
+				break;
+			case CharK:
+				fprintf(listing,"char\n");
+				break;
+			default:
+				fprintf(listing,"Unknown DeclNode kine\n");
+				break;
+		}
+	}
+	else fprintf(listing,"Unknown node kind\n");
     for (i=0;i<MAXCHILDREN;i++)
          printTree(tree->child[i]);
     tree = tree->sibling;

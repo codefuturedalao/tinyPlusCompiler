@@ -13,6 +13,10 @@
 static TokenType token; /* holds current token */
 
 /* function prototypes for recursive calls */
+static TreeNode * program(void);
+static TreeNode * declaration_list(void);
+static TreeNode * declaration(void);
+static TreeNode * type_specifier(void);
 static TreeNode * stmt_sequence(void);
 static TreeNode * statement(void);
 static TreeNode * if_stmt(void);
@@ -38,6 +42,63 @@ static void match(TokenType expected)
     printToken(token,tokenString);
     fprintf(listing,"      ");
   }
+}
+
+TreeNode * program(void)
+{
+	TreeNode * t = newProgNode();
+	TreeNode * p = declaration_list();
+	match(SEMI);
+	TreeNode * q = stmt_sequence();
+	t->child[0] = p;
+	t->child[1] = q;
+	return t;
+}
+
+TreeNode * declaration_list(void)
+{
+  TreeNode * t = declaration();
+  TreeNode * p = t;
+  while ((token == INT) || (token == CHAR))
+  { TreeNode * q;
+    q = declaration();
+    if (q!=NULL) {
+      if (t==NULL) t = p = q;
+      else /* now p cannot be NULL either */
+      { p->sibling = q;
+        p = q;
+      }
+    }
+  }
+  return t;
+	
+}
+
+TreeNode * declaration(void)
+{
+	TreeNode * t = type_specifier();
+ 	 if ((t!=NULL) && (token==ID))
+   		 t->attr.name = copyString(tokenString);
+	 match(ID);
+	 //printf("match ID!\n");
+	 match(SEMI);
+	 //printf("match ;\n");
+	 return t;
+}
+
+TreeNode * type_specifier(void)
+{
+	TreeNode * t = NULL;
+	if(token == INT){
+		t = newDeclNode(IntK);
+		match(INT);
+	}
+	else{
+		t = newDeclNode(CharK);
+		match(CHAR);
+	}
+	//printf("match int or char!\n");
+	return t;
 }
 
 TreeNode * stmt_sequence(void)
@@ -208,7 +269,7 @@ TreeNode * factor(void)
 TreeNode * parse(void)
 { TreeNode * t;
   token = getToken();
-  t = stmt_sequence();
+  t = program();
   if (token!=ENDFILE)
     syntaxError("Code ends before file\n");
   return t;

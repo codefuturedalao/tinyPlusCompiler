@@ -39,7 +39,7 @@ FILE * code;
 /* allocate and set tracing flags */
 int EchoSource = FALSE;
 int TraceScan = TRUE;
-int TraceParse = FALSE;
+int TraceParse = TRUE;
 int TraceAnalyze = FALSE;
 int TraceCode = FALSE;
 
@@ -62,7 +62,6 @@ main( int argc, char * argv[] )
   }
   listing = stdout; /* send listing to screen */
   fprintf(listing,"\nTINY COMPILATION: %s\n",pgm);
-  fprintf(listing,"\nwaiting -----------------\n");
 #if NO_PARSE
   while (getToken()!=ENDFILE);
 #else
