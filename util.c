@@ -22,6 +22,8 @@ void printToken( TokenType token, const char* tokenString )
     case UNTIL:
     case READ:
     case WRITE:
+	case INT:
+	case CHAR:
       fprintf(listing,
          "reserved word: %s\n",tokenString);
       break;
