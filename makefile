@@ -6,12 +6,14 @@
 
 CC = gcc
 
-CFLAGS = -o tcc 
+CFLAGS =  
+
+OBJNAME = -o tcc
 
 OBJS = main.o util.o scan.o parse.o symtab.o analyze.o code.o cgen.o
 
 tiny.exe: $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS)
+	$(CC) $(OBJNAME) $(OBJS)
 
 main.o: main.c globals.h util.h scan.h parse.h analyze.h cgen.h
 	$(CC) $(CFLAGS) -c main.c
