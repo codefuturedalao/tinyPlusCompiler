@@ -49,6 +49,7 @@ typedef struct BucketListRec
    { char * name;
      LineList lines;
      int memloc ; /* memory location for variable */
+	 DeclKind kind;  // int or char
      struct BucketListRec * next;
    } * BucketList;
 
@@ -60,7 +61,7 @@ static BucketList hashTable[SIZE];
  * loc = memory location is inserted only the
  * first time, otherwise ignored
  */
-void st_insert( char * name, int lineno, int loc )
+void st_insert( char * name, int lineno, int loc ,DeclKind declkind)
 { int h = hash(name);
   BucketList l =  hashTable[h];
   while ((l != NULL) && (strcmp(name,l->name) != 0))
@@ -71,9 +72,13 @@ void st_insert( char * name, int lineno, int loc )
     l->lines = (LineList) malloc(sizeof(struct LineListRec));
     l->lines->lineno = lineno;
     l->memloc = loc;
+	l->kind = declkind;
     l->lines->next = NULL;
     l->next = hashTable[h];
     hashTable[h] = l; }
+	/* the else situation is useless, because when we insert
+	we will lookup before, so the else situation could never
+    happen */
   else /* found in table, so just add line number */
   { LineList t = l->lines;
     while (t->next != NULL) t = t->next;
@@ -93,6 +98,19 @@ int st_lookup ( char * name )
     l = l->next;
   if (l == NULL) return -1;
   else return l->memloc;
+}
+
+/* Function st_returnType returns the type
+   char or int
+*/
+DeclKind st_returnType(char * name) 
+{
+	int h = hash(name);
+	BucketList l = hashTable[h];
+    while ((l != NULL) && (strcmp(name,l->name) != 0))
+      l = l->next;
+    if (l == NULL) return -1;
+    else return l->kind;
 }
 
 /* Procedure printSymTab prints a formatted 

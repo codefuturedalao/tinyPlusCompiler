@@ -65,7 +65,7 @@ TreeNode * newProgNode()
   else {
     for (i=0;i<MAXCHILDREN;i++) t->child[i] = NULL;
     t->sibling = NULL;
-    t->nodekind = DeclK;
+    t->nodekind = ProgK;
     //t->kind.decl = kind;
     t->lineno = lineno;
   }
@@ -216,6 +216,8 @@ void printTree( TreeNode * tree )
 				break;
 		}
 	}
+	else if (tree->nodekind==ProgK)
+		fprintf(listing,"program start\n");
 	else fprintf(listing,"Unknown node kind\n");
     for (i=0;i<MAXCHILDREN;i++)
          printTree(tree->child[i]);

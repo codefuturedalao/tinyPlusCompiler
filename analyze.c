@@ -13,6 +13,12 @@
 /* counter for variable memory locations */
 static int location = 0;
 
+static void analysisError(TreeNode * t,char * message)
+{ fprintf(listing,"\n>>> ");
+  fprintf(listing,"analysis error at line %d: %s ",t->lineno,message);
+  Error = TRUE;
+}
+
 /* Procedure traverse is a generic recursive 
  * syntax tree traversal routine:
  * it applies preProc in preorder and postProc 
@@ -47,37 +53,50 @@ static void nullProc(TreeNode * t)
  */
 static void insertNode( TreeNode * t)
 { switch (t->nodekind)
-  { case StmtK:
+  { /*case StmtK:
       switch (t->kind.stmt)
       { case AssignK:
         case ReadK:
-          if (st_lookup(t->attr.name) == -1)
+          if (st_lookup(t->attr.name) == -1) */
           /* not yet in table, so treat as new definition */
-            st_insert(t->attr.name,t->lineno,location++);
-          else
+    /*        st_insert(t->attr.name,t->lineno,location++);
+          else */
           /* already in table, so ignore location, 
              add line number of use only */ 
-            st_insert(t->attr.name,t->lineno,0);
+    /*        st_insert(t->attr.name,t->lineno,0);
           break;
         default:
           break;
       }
       break;
-    case ExpK:
+	*/
+    /*case ExpK:
       switch (t->kind.exp)
       { case IdK:
-          if (st_lookup(t->attr.name) == -1)
+          if (st_lookup(t->attr.name) == -1)*/
           /* not yet in table, so treat as new definition */
-            st_insert(t->attr.name,t->lineno,location++);
-          else
+    /*        st_insert(t->attr.name,t->lineno,location++);
+          else */
           /* already in table, so ignore location, 
              add line number of use only */ 
-            st_insert(t->attr.name,t->lineno,0);
+    /*        st_insert(t->attr.name,t->lineno,0);
           break;
         default:
           break;
       }
       break;
+	*/
+	//todo 
+	/* only declaration could insert node into symtab */
+	case DeclK:
+		if(st_lookup(t->attr.name) == -1)
+				/* not yet in table, so treat as new definition */
+				st_insert(t->attr.name,t->lineno,location++,t->kind.decl);
+		else {
+				analysisError(t,"multiple declaration -->");
+				printToken(ID,t->attr.name);
+		}
+		break;				
     default:
       break;
   }
@@ -95,7 +114,8 @@ void buildSymtab(TreeNode * syntaxTree)
 }
 
 static void typeError(TreeNode * t, char * message)
-{ fprintf(listing,"Type error at line %d: %s\n",t->lineno,message);
+{ fprintf(listing,"\n>>> ");
+  fprintf(listing,"Type error at line %d: %s\n",t->lineno,message);
   Error = TRUE;
 }
 
@@ -107,17 +127,31 @@ static void checkNode(TreeNode * t)
   { case ExpK:
       switch (t->kind.exp)
       { case OpK:
-          if ((t->child[0]->type != Integer) ||
-              (t->child[1]->type != Integer))
-            typeError(t,"Op applied to non-integer");
+//          if ((t->child[0]->type != Integer) ||
+//             (t->child[1]->type != Integer))
+//          typeError(t,"Op applied to non-integer");
+		  if(((t->child[0]->type == Integer) && (t->child[1]->type == Char)) ||
+			((t->child[0]->type == Char) && (t->child[1]->type == Integer)))
+		    typeError(t,"cannot op char and int");	
+		 
           if ((t->attr.op == EQ) || (t->attr.op == LT))
             t->type = Boolean;
-          else
+          else if((t->child[0]->type == Integer) && (t->child[1]->type == Integer))
             t->type = Integer;
+		  else if((t->child[0]->type == Char) && (t->child[1]->type == Char))
+			t->type = Char;
+		  else 
+			t->type = Integer;
           break;
-        case ConstK:
+        case ConstK: //num is int type by default
+		  t->type = Integer;
         case IdK:
-          t->type = Integer;
+		//	todo 	
+		  if(st_lookup(t->attr.name) == -1){
+				analysisError(t,"undefined identifier");
+				printToken(ID,t->attr.name);
+		  }else
+				t->type = st_returnType(t->attr.name);
           break;
         default:
           break;
@@ -126,19 +160,29 @@ static void checkNode(TreeNode * t)
     case StmtK:
       switch (t->kind.stmt)
       { case IfK:
-          if (t->child[0]->type == Integer)
+          if (t->child[0]->type != Boolean)
             typeError(t->child[0],"if test is not Boolean");
           break;
-        case AssignK:
-          if (t->child[0]->type != Integer)
-            typeError(t->child[0],"assignment of non-integer value");
+        case AssignK:{
+		  ExpType type;
+		  if(st_lookup(t->attr.name) == -1){
+				analysisError(t,"undefined identifier");
+				printToken(ID,t->attr.name);
+		  }else
+				type = st_returnType(t->attr.name);
+		  if(type != t->child[0]->type)
+            typeError(t->child[0],"cannot convert diffrent type");
+			 
+          //if (t->child[0]->type != Integer)
+            //typeError(t->child[0],"assignment of non-integer value");
           break;
+		}
         case WriteK:
-          if (t->child[0]->type != Integer)
+          if ((t->child[0]->type != Integer) || (t->child[0]->type != Char))
             typeError(t->child[0],"write of non-integer value");
           break;
         case RepeatK:
-          if (t->child[1]->type == Integer)
+          if ((t->child[0]->type != Integer) || (t->child[0]->type != Char))
             typeError(t->child[1],"repeat test is not Boolean");
           break;
         default:
