@@ -182,11 +182,11 @@ static void checkNode(TreeNode * t)
           break;
 		}
         case WriteK:
-          if ((t->child[0]->type != Integer) || (t->child[0]->type != Char))
-            typeError(t->child[0],"write of non-integer value");
+          if ((t->child[0]->type != Integer) && (t->child[0]->type != Char))
+            typeError(t->child[0],"write of non-integer or char value");
           break;
         case RepeatK:
-          if ((t->child[0]->type != Integer) || (t->child[0]->type != Char))
+          if (t->child[1]->type != Boolean)
             typeError(t->child[1],"repeat test is not Boolean");
           break;
         default:
