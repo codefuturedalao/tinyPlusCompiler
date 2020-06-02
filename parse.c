@@ -48,7 +48,7 @@ TreeNode * program(void)
 {
 	TreeNode * t = newProgNode();
 	TreeNode * p = declaration_list();
-	match(SEMI);
+//	match(SEMI);
 	TreeNode * q = stmt_sequence();
 	t->child[0] = p;
 	t->child[1] = q;

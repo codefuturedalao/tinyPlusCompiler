@@ -41,7 +41,7 @@ int EchoSource = FALSE;
 int TraceScan = TRUE;
 int TraceParse = TRUE;
 int TraceAnalyze = TRUE;
-int TraceCode = FALSE;
+int TraceCode = TRUE;
 
 int Error = FALSE;
 
@@ -90,7 +90,7 @@ main( int argc, char * argv[] )
     { printf("Unable to open %s\n",codefile);
       exit(1);
     }
-    codeGen(syntaxTree,codefile);
+    codeGen(syntaxTree->child[1],codefile);
     fclose(code);
   }
 #endif

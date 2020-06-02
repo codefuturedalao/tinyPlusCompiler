@@ -123,7 +123,8 @@ static void typeError(TreeNode * t, char * message)
  * type checking at a single tree node
  */
 static void checkNode(TreeNode * t)
-{ switch (t->nodekind)
+{ 
+	switch (t->nodekind)
   { case ExpK:
       switch (t->kind.exp)
       { case OpK:
@@ -145,6 +146,7 @@ static void checkNode(TreeNode * t)
           break;
         case ConstK: //num is int type by default
 		  t->type = Integer;
+		  break;
         case IdK:
 		//	todo 	
 		  if(st_lookup(t->attr.name) == -1){
@@ -170,8 +172,10 @@ static void checkNode(TreeNode * t)
 				printToken(ID,t->attr.name);
 		  }else
 				type = st_returnType(t->attr.name);
-		  if(type != t->child[0]->type)
+		  if(type != t->child[0]->type){
             typeError(t->child[0],"cannot convert diffrent type");
+			printf("the type is %d, and the child[0]->type is %d",(int)type,(int)(t->child[0]->type));
+		  }
 			 
           //if (t->child[0]->type != Integer)
             //typeError(t->child[0],"assignment of non-integer value");
@@ -199,5 +203,6 @@ static void checkNode(TreeNode * t)
  * by a postorder syntax tree traversal
  */
 void typeCheck(TreeNode * syntaxTree)
-{ traverse(syntaxTree,nullProc,checkNode);
+{
+	traverse(syntaxTree,nullProc,checkNode);
 }
