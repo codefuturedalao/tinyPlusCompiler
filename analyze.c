@@ -173,8 +173,8 @@ static void checkNode(TreeNode * t)
 		  }else
 				type = st_returnType(t->attr.name);
 		  if(type != t->child[0]->type){
-            typeError(t->child[0],"cannot convert diffrent type");
-			printf("the type is %d, and the child[0]->type is %d",(int)type,(int)(t->child[0]->type));
+            typeError(t->child[0],"cannot assgin between diffrent type");
+			//printf("the type is %d, and the child[0]->type is %d",(int)type,(int)(t->child[0]->type));
 		  }
 			 
           //if (t->child[0]->type != Integer)

@@ -124,10 +124,10 @@ TreeNode * statement(void)
 { TreeNode * t = NULL;
   switch (token) {
     case IF : t = if_stmt(); break;
-    case REPEAT : t = repeat_stmt(); break;
+    //case REPEAT : t = repeat_stmt(); break;
     case ID : t = assign_stmt(); break;
-    case READ : t = read_stmt(); break;
-    case WRITE : t = write_stmt(); break;
+   // case READ : t = read_stmt(); break;
+    //case WRITE : t = write_stmt(); break;
     default : syntaxError("unexpected token -> ");
               printToken(token,tokenString);
               token = getToken();
