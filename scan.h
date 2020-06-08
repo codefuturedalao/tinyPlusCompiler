@@ -22,12 +22,12 @@ TokenType getToken(void);
 /* function getToken returns the 
  * next token in source file
  */
-void keepTrack();
+int keepTrack();
 
 /* function getToken returns the 
  * next token in source file
  */
-void backToTrack(); 
+void backToTrack(int old_linepos); 
 
 
 #endif

@@ -26,7 +26,6 @@ static char lineBuf[2][BUFLEN]; /* holds the current line */
 static int flag = 1;
 static int old_flag;
 static int load_flag = TRUE;
-static int old_linepos;
 static int old_bufsize;
 static int linepos = 0; /* current position in LineBuf */
 static int fore_linepos = 0;
@@ -283,18 +282,17 @@ TokenType getToken(void)
    return currentToken;
 } /* end getToken */
 
-void keepTrack(){
-	old_linepos = fore_linepos;
+int keepTrack(){
 	old_bufsize = bufsize;
 	old_flag = flag;
+	return fore_linepos;
 }
 
-void backToTrack(){
+void backToTrack(int old_linepos){
 	if(old_flag != flag)
 		load_flag = FALSE;
 	flag = old_flag;
 	/*restore the old value*/
 	linepos = old_linepos;
 	bufsize = old_bufsize;
-	printf("go back!---------------------------------\n");
 }

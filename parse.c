@@ -69,7 +69,6 @@ TreeNode * declaration_list(void)
   TreeNode * p = t;
   while ((token == INT) || (token == CHAR) || (token == VOID))
   { TreeNode * q;
-	printf("now let's go to the next declaration\n");
     q = declaration();
     if (q!=NULL) {
       if (t==NULL) t = p = q;
@@ -87,18 +86,18 @@ TreeNode * declaration(void)
 {
 		TreeNode * t = NULL;
 		if((token == INT) || (token == CHAR) || (token == VOID)){
-				keepTrack();
+				int old_linepos = keepTrack();
 				match(token);
 				match(ID);
 				switch(token){
 						case SEMI:
 						case LBRACKET:
-								backToTrack();
+								backToTrack(old_linepos);
 								token = getToken();
 								t = var_declaration();	
 								break;
 						case LPAREN:
-								backToTrack();
+								backToTrack(old_linepos);
 								token = getToken();
 								t = fun_declaration();
 								break;
@@ -224,8 +223,6 @@ TreeNode * compound_stmt(void)
 	match(LBRACE);
 	TreeNode * t = newStmtNode(CompoundK);
 	t->child[0] = local_declaration();
-	if(t->child[0] == NULL)
-		printf("there is no local_declaration\n");
 	t->child[1] = stmt_sequence();
 	match(RBRACE);
 	return t;
@@ -263,13 +260,10 @@ TreeNode * type_specifier(NodeKind kind)
 					match(INT);
 			}
 			else if(token == CHAR){
-					printf("i am in char");
 					t = newDeclNode(ID_CharK);
 					match(CHAR);
 			}else{
-					printf("i am in void");
 					t = newDeclNode(FUN_VoidK);
-					printf("fun's return type is %d\n",t->kind.decl);
 					match(VOID);
 			}
 	}else if(kind == ParamK){
@@ -312,7 +306,7 @@ TreeNode * stmt_sequence(void)
 TreeNode * statement(void)
 { TreeNode * t = NULL;
   switch (token) {
-    case IF : printf(" i am in selection_stmt\n"); t = selection_stmt(); break;
+    case IF : t = selection_stmt(); break;
     case ID : 
 	case SEMI:
 		t = expression_stmt(); break;
@@ -342,7 +336,6 @@ TreeNode * expression_stmt(void)
 TreeNode * selection_stmt(void)
 { TreeNode * t = newStmtNode(IfK);
   match(IF);
-	printf("after match if\n");
   match(LPAREN);
   if (t!=NULL) t->child[0] = exp();
   match(RPAREN);
@@ -379,7 +372,7 @@ TreeNode * exp(void)
 {
 	TreeNode * t = NULL;
 	TreeNode * q = NULL;
-	keepTrack();
+	int old_linepos = keepTrack();
 	t = var();
 	if(t != NULL && token == ASSIGN){ //exp-> var = expression
 		q = newExpNode(AssignK);
@@ -391,7 +384,7 @@ TreeNode * exp(void)
 	}else{
 		free(t);
 		t = NULL;
-		backToTrack();
+		backToTrack(old_linepos);
 		token = getToken();
 		t = simple_exp();
 	}	
@@ -471,19 +464,20 @@ TreeNode * factor(void)
 								t->attr.val = atoi(tokenString);
 						match(NUM);
 						break;
-				case ID :
-						keepTrack();
+				case ID :{
+						int old_linepos = keepTrack();
 						match(ID);
 						if(token == LPAREN){
-								backToTrack();
+								backToTrack(old_linepos);
 								token = getToken();
 								t = call();
 						}else{ //[ or other thing
-								backToTrack();
+								backToTrack(old_linepos);
 								token = getToken();
 								t = var();	  
 						}
 						break;
+			    }	
 				case LPAREN :
 						match(LPAREN);
 						t = exp();
