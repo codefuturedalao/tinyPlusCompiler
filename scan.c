@@ -22,7 +22,12 @@ char tokenString[MAXTOKENLEN+1];
    source code lines */
 #define BUFLEN 256
 
-static char lineBuf[BUFLEN]; /* holds the current line */
+static char lineBuf[2][BUFLEN]; /* holds the current line */
+static int flag = 1;
+static int old_flag;
+static int load_flag = TRUE;
+static int old_linepos;
+static int old_bufsize;
 static int linepos = 0; /* current position in LineBuf */
 static int bufsize = 0; /* current size of buffer string */
 static int EOF_flag = FALSE; /* corrects ungetNextChar behavior on EOF */
@@ -32,19 +37,26 @@ static int EOF_flag = FALSE; /* corrects ungetNextChar behavior on EOF */
    exhausted */
 static int getNextChar(void)
 { if (!(linepos < bufsize))
-  { lineno++;
-    if (fgets(lineBuf,BUFLEN-1,source))
-    { if (EchoSource) fprintf(listing,"%4d: %s",lineno,lineBuf);
-      bufsize = strlen(lineBuf);
-      linepos = 0;
-      return lineBuf[linepos++];
-    }
-    else
-    { EOF_flag = TRUE;
-      return EOF;
-    }
-  }
-  else return lineBuf[linepos++];
+		{ lineno++;
+				flag = 1 - flag;
+				if(load_flag){
+						if (fgets(lineBuf[flag],BUFLEN-1,source))
+						{ if (EchoSource) fprintf(listing,"%4d: %s",lineno,lineBuf[flag]);
+								bufsize = strlen(lineBuf[flag]);
+								linepos = 0;
+								return lineBuf[flag][linepos++];
+						}
+						else
+						{ EOF_flag = TRUE;
+								return EOF;
+						}
+				}else {
+						bufsize = strlen(lineBuf[flag]);
+						linepos = 0;
+						return lineBuf[flag][linepos++];	
+				}
+		}
+		else return lineBuf[flag][linepos++];
 }
 
 /* ungetNextChar backtracks one character
@@ -269,3 +281,17 @@ TokenType getToken(void)
    return currentToken;
 } /* end getToken */
 
+void keepTrack(){
+	old_linepos = linepos;
+	old_bufsize = bufsize;
+	old_flag = flag;
+}
+
+void backToTrack(){
+	if(old_flag != flag)
+		load_flag = FALSE;
+	flag = old_flag;
+	/*restore the old value*/
+	linepos = old_linepos;
+	bufsize = old_bufsize;
+}

@@ -19,4 +19,16 @@ extern char tokenString[MAXTOKENLEN+1];
  */
 TokenType getToken(void);
 
+/* function getToken returns the 
+ * next token in source file
+ */
+void keepTrack();
+
+/* function getToken returns the 
+ * next token in source file
+ */
+void backToTrack(); 
+
+
 #endif
+
