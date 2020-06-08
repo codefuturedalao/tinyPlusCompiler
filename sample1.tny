@@ -3,8 +3,8 @@
 	compute adding
 }
 int x;
-char y;
-;
+int y;
+int z;
 read x;
 read y;
 z := x + y;

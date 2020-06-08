@@ -29,6 +29,7 @@ static int load_flag = TRUE;
 static int old_linepos;
 static int old_bufsize;
 static int linepos = 0; /* current position in LineBuf */
+static int fore_linepos = 0;
 static int bufsize = 0; /* current size of buffer string */
 static int EOF_flag = FALSE; /* corrects ungetNextChar behavior on EOF */
 
@@ -43,7 +44,7 @@ static int getNextChar(void)
 						if (fgets(lineBuf[flag],BUFLEN-1,source))
 						{ if (EchoSource) fprintf(listing,"%4d: %s",lineno,lineBuf[flag]);
 								bufsize = strlen(lineBuf[flag]);
-								linepos = 0;
+								fore_linepos = linepos = 0;
 								return lineBuf[flag][linepos++];
 						}
 						else
@@ -52,7 +53,7 @@ static int getNextChar(void)
 						}
 				}else {
 						bufsize = strlen(lineBuf[flag]);
-						linepos = 0;
+						fore_linepos = linepos = 0;
 						return lineBuf[flag][linepos++];	
 				}
 		}
@@ -97,6 +98,7 @@ TokenType getToken(void)
    StateType state = START;
    /* flag to indicate save to tokenString */
    int save;
+   fore_linepos = linepos;
    while (state != DONE)
    { int c = getNextChar();
      save = TRUE;
@@ -282,7 +284,7 @@ TokenType getToken(void)
 } /* end getToken */
 
 void keepTrack(){
-	old_linepos = linepos;
+	old_linepos = fore_linepos;
 	old_bufsize = bufsize;
 	old_flag = flag;
 }
@@ -294,4 +296,5 @@ void backToTrack(){
 	/*restore the old value*/
 	linepos = old_linepos;
 	bufsize = old_bufsize;
+	printf("go back!---------------------------------\n");
 }

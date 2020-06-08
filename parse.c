@@ -16,18 +16,28 @@ static TokenType token; /* holds current token */
 static TreeNode * program(void);
 static TreeNode * declaration_list(void);
 static TreeNode * declaration(void);
-static TreeNode * type_specifier(void);
+static TreeNode * var_declaration(void);
+static TreeNode * fun_declaration(void);
+static TreeNode * params(void);
+static TreeNode * param_list(void);
+static TreeNode * param(void);
+static TreeNode * compound_stmt(void);
+static TreeNode * local_declaration(void);
+static TreeNode * type_specifier(NodeKind kind);
 static TreeNode * stmt_sequence(void);
 static TreeNode * statement(void);
-static TreeNode * if_stmt(void);
-static TreeNode * repeat_stmt(void);
-static TreeNode * assign_stmt(void);
-static TreeNode * read_stmt(void);
-static TreeNode * write_stmt(void);
+static TreeNode * additive_exp(void);
+static TreeNode * expression_stmt(void);
+static TreeNode * var(void);
+static TreeNode * selection_stmt(void);
+static TreeNode * iteration_stmt(void);
+static TreeNode * return_stmt(void);
 static TreeNode * exp(void);
 static TreeNode * simple_exp(void);
 static TreeNode * term(void);
 static TreeNode * factor(void);
+static TreeNode * call(void);
+static TreeNode * args(void);
 
 static void syntaxError(char * message)
 { fprintf(listing,"\n>>> ");
@@ -46,12 +56,10 @@ static void match(TokenType expected)
 
 TreeNode * program(void)
 {
+/* i am lazy,so keep the prognode */ 
 	TreeNode * t = newProgNode();
 	TreeNode * p = declaration_list();
-//	match(SEMI);
-	TreeNode * q = stmt_sequence();
 	t->child[0] = p;
-	t->child[1] = q;
 	return t;
 }
 
@@ -59,8 +67,9 @@ TreeNode * declaration_list(void)
 {
   TreeNode * t = declaration();
   TreeNode * p = t;
-  while ((token == INT) || (token == CHAR))
+  while ((token == INT) || (token == CHAR) || (token == VOID))
   { TreeNode * q;
+	printf("now let's go to the next declaration\n");
     q = declaration();
     if (q!=NULL) {
       if (t==NULL) t = p = q;
@@ -76,58 +85,240 @@ TreeNode * declaration_list(void)
 
 TreeNode * declaration(void)
 {
-	TreeNode * t = type_specifier();
- 	 if ((t!=NULL) && (token==ID))
-   		 t->attr.name = copyString(tokenString);
-	 match(ID);
-	 //printf("match ID!\n");
-	 match(SEMI);
-	 //printf("match ;\n");
-	 return t;
+		TreeNode * t = NULL;
+		if((token == INT) || (token == CHAR) || (token == VOID)){
+				keepTrack();
+				match(token);
+				match(ID);
+				switch(token){
+						case SEMI:
+						case LBRACKET:
+								backToTrack();
+								token = getToken();
+								t = var_declaration();	
+								break;
+						case LPAREN:
+								backToTrack();
+								token = getToken();
+								t = fun_declaration();
+								break;
+						default : syntaxError("unexpected token -> ");
+								  printToken(token,tokenString);
+								  token = getToken();
+								  break;
+				}
+		}else{
+				syntaxError("unexpected token -> ");
+				printToken(token,tokenString);
+				token = getToken();
+		}	
+		return t;
 }
 
-TreeNode * type_specifier(void)
+TreeNode * var_declaration(void)
+{
+		TreeNode * t = type_specifier(DeclK);
+		if ((t!=NULL) && (token==ID))
+				t->attr.name = copyString(tokenString);
+		match(ID);
+		if(token == SEMI){
+			match(SEMI);
+		}else if(token == LBRACKET){
+				match(LBRACKET);
+				if(t->kind.decl == ID_IntK)
+						t->kind.decl = Array_IntK;
+				else
+						t->kind.decl = Array_CharK;
+				if(token == NUM){
+						TreeNode * p = newExpNode(ConstK);
+						if ((t!=NULL) && (token==NUM))
+								p->attr.val = atoi(tokenString);
+						match(NUM);
+						t->child[0] = p;	
+						match(RBRACKET);
+						match(SEMI);
+				}else{
+						syntaxError("unexpected token -> ");
+						printToken(token,tokenString);
+						token = getToken();
+				}	
+
+		}
+		return t;
+}
+
+TreeNode * fun_declaration(void)
+{
+		TreeNode * t = type_specifier(DeclK);
+		if(t->kind.decl == ID_IntK)
+			t->kind.decl = FUN_IntK;
+		else if(t->kind.decl == ID_CharK)
+			t->kind.decl = FUN_CharK;
+		if ((t!=NULL) && (token==ID))
+				t->attr.name = copyString(tokenString);
+		match(ID);
+		match(LPAREN);
+		TreeNode * t1 = params();
+		match(RPAREN);
+		TreeNode * t2 = compound_stmt();
+		t->child[0] = t1;
+		t->child[1] = t2;	
+		return t;
+}
+
+TreeNode * params(void)
 {
 	TreeNode * t = NULL;
-	if(token == INT){
-		t = newDeclNode(IntK);
-		match(INT);
+	if(token == VOID){
+	/* equal to t = type_specifier(ParamK); */
+		t = newParamNode(VoidK);	
+		match(VOID);
+	}else{
+		t = param_list();
 	}
-	else{
-		t = newDeclNode(CharK);
-		match(CHAR);
+	return t;
+}
+
+TreeNode * param_list(void)
+{ 
+		TreeNode * t = param();
+		TreeNode * p = t;
+		while (token == COMMA)
+		{
+			 	TreeNode * q;
+				match(COMMA);
+				q = param();
+				if (q!=NULL) {
+						if (t==NULL) 
+								t = p = q;
+						else /* now p cannot be NULL either */
+						{ 
+								p->sibling = q;
+								p = q;
+						}
+				}
+		}
+		return t;
+}
+
+TreeNode * param(void)
+{
+		TreeNode * t = type_specifier(ParamK);
+		if ((t!=NULL) && (token==ID))
+				t->attr.name = copyString(tokenString);
+		match(ID);
+		if(token == LBRACKET){
+				/*change it to array type*/
+				if(t->kind.param == PID_IntK)
+						t->kind.param = PArray_IntK;
+				else
+						t->kind.param = PArray_CharK;
+				match(LBRACKET);
+				match(RBRACKET);
+		}
+		return t;	
+}
+
+TreeNode * compound_stmt(void)
+{
+	match(LBRACE);
+	TreeNode * t = newStmtNode(CompoundK);
+	t->child[0] = local_declaration();
+	if(t->child[0] == NULL)
+		printf("there is no local_declaration\n");
+	t->child[1] = stmt_sequence();
+	match(RBRACE);
+	return t;
+}
+
+TreeNode * local_declaration(void)
+{
+		TreeNode * t = NULL;
+		if((token == INT) || (token == CHAR)){
+				t = var_declaration();
+		}
+		TreeNode * p = t;
+		while((token == INT) || (token == CHAR)){
+				/* local_declaration -> var_declaration local_declaration */
+				TreeNode * q;
+				q = var_declaration();
+				if (q!=NULL) {
+						if (t==NULL) t = p = q;
+						else /* now p cannot be NULL either */
+						{ p->sibling = q;
+								p = q;
+						}
+				}
+
+		}	
+		return t;
+}
+
+TreeNode * type_specifier(NodeKind kind)
+{
+	TreeNode * t = NULL;
+	if(kind == DeclK){
+			if(token == INT){
+					t = newDeclNode(ID_IntK);
+					match(INT);
+			}
+			else if(token == CHAR){
+					printf("i am in char");
+					t = newDeclNode(ID_CharK);
+					match(CHAR);
+			}else{
+					printf("i am in void");
+					t = newDeclNode(FUN_VoidK);
+					printf("fun's return type is %d\n",t->kind.decl);
+					match(VOID);
+			}
+	}else if(kind == ParamK){
+			if(token == INT){
+					t = newParamNode(PID_IntK);
+					match(INT);
+			}
+			else if(token == CHAR){
+					t = newParamNode(PID_CharK);
+					match(CHAR);
+			}
 	}
-	//printf("match int or char!\n");
 	return t;
 }
 
 TreeNode * stmt_sequence(void)
-{ TreeNode * t = statement();
-  TreeNode * p = t;
-  while ((token!=ENDFILE) && (token!=END) &&
-         (token!=ELSE) && (token!=UNTIL))
-  { TreeNode * q;
-    match(SEMI);
-    q = statement();
-    if (q!=NULL) {
-      if (t==NULL) t = p = q;
-      else /* now p cannot be NULL either */
-      { p->sibling = q;
-        p = q;
-      }
-    }
-  }
-  return t;
+{
+		TreeNode * t = NULL;
+		while(token != RBRACE){
+
+				t = statement();
+				TreeNode * p = t;
+				while (token!= RBRACE)	
+				{ 
+						TreeNode * q;
+						q = statement();
+						if (q!=NULL) {
+								if (t==NULL) 
+									t = p = q;
+								else /* now p cannot be NULL either */
+								{ p->sibling = q;
+										p = q;
+								}
+						}
+				}
+		}
+		return t;
 }
 
 TreeNode * statement(void)
 { TreeNode * t = NULL;
   switch (token) {
-    case IF : t = if_stmt(); break;
-    //case REPEAT : t = repeat_stmt(); break;
-    case ID : t = assign_stmt(); break;
-   // case READ : t = read_stmt(); break;
-    //case WRITE : t = write_stmt(); break;
+    case IF : printf(" i am in selection_stmt\n"); t = selection_stmt(); break;
+    case ID : 
+	case SEMI:
+		t = expression_stmt(); break;
+	case LBRACE : t = compound_stmt(); break;
+	case WHILE : t = iteration_stmt(); break;
+	case RETURN : t = return_stmt(); break;
     default : syntaxError("unexpected token -> ");
               printToken(token,tokenString);
               token = getToken();
@@ -136,58 +327,98 @@ TreeNode * statement(void)
   return t;
 }
 
-TreeNode * if_stmt(void)
+TreeNode * expression_stmt(void)
+{
+	TreeNode * t = NULL;
+	if(token == SEMI){
+		//do nothing
+	}else if(token == ID){
+		t = exp();
+		match(SEMI);
+	}
+	return t;	
+}
+
+TreeNode * selection_stmt(void)
 { TreeNode * t = newStmtNode(IfK);
   match(IF);
+	printf("after match if\n");
+  match(LPAREN);
   if (t!=NULL) t->child[0] = exp();
-  match(THEN);
-  if (t!=NULL) t->child[1] = stmt_sequence();
+  match(RPAREN);
+  if (t!=NULL) t->child[1] = statement();
   if (token==ELSE) {
     match(ELSE);
-    if (t!=NULL) t->child[2] = stmt_sequence();
+    if (t!=NULL) t->child[2] = statement();
   }
-  match(END);
   return t;
 }
 
-TreeNode * repeat_stmt(void)
-{ TreeNode * t = newStmtNode(RepeatK);
-  match(REPEAT);
-  if (t!=NULL) t->child[0] = stmt_sequence();
-  match(UNTIL);
-  if (t!=NULL) t->child[1] = exp();
-  return t;
+TreeNode * iteration_stmt(void)
+{
+ 	TreeNode * t = newStmtNode(WhileK);
+	match(WHILE);
+	match(LPAREN);
+	t->child[0] = exp();
+	match(RPAREN);
+	t->child[1] = statement();
+	return t;	
 }
 
-TreeNode * assign_stmt(void)
-{ TreeNode * t = newStmtNode(AssignK);
-  if ((t!=NULL) && (token==ID))
-    t->attr.name = copyString(tokenString);
-  match(ID);
-  match(ASSIGN);
-  if (t!=NULL) t->child[0] = exp();
-  return t;
-}
-
-TreeNode * read_stmt(void)
-{ TreeNode * t = newStmtNode(ReadK);
-  match(READ);
-  if ((t!=NULL) && (token==ID))
-    t->attr.name = copyString(tokenString);
-  match(ID);
-  return t;
-}
-
-TreeNode * write_stmt(void)
-{ TreeNode * t = newStmtNode(WriteK);
-  match(WRITE);
-  if (t!=NULL) t->child[0] = exp();
-  return t;
+TreeNode * return_stmt(void)
+{
+	TreeNode * t = newStmtNode(ReturnK);
+	match(RETURN);
+	if(token != SEMI)
+		t->child[0] = exp();
+	match(SEMI);
+	return t;	
 }
 
 TreeNode * exp(void)
-{ TreeNode * t = simple_exp();
-  if ((token==LT)||(token==EQ)) {
+{
+	TreeNode * t = NULL;
+	TreeNode * q = NULL;
+	keepTrack();
+	t = var();
+	if(t != NULL && token == ASSIGN){ //exp-> var = expression
+		q = newExpNode(AssignK);
+		match(ASSIGN);
+		TreeNode * p = exp();	
+		q->child[0] = t;
+		q->child[1] = p;
+		t = q;
+	}else{
+		free(t);
+		t = NULL;
+		backToTrack();
+		token = getToken();
+		t = simple_exp();
+	}	
+	return t;
+}
+
+TreeNode * var(void)
+{
+		TreeNode * t = NULL; 
+		if (token==ID){
+				t = newExpNode(IdK);
+				t->attr.name = copyString(tokenString);
+				match(ID);
+				if(token == LBRACKET){
+						match(LBRACKET);
+						TreeNode * p = exp();
+						t->child[0] = p;
+						match(RBRACKET);
+				}
+		}
+		return t;
+}
+
+TreeNode * simple_exp(void)
+{ TreeNode * t = additive_exp();
+  if ((token==LT)||(token==EQ) || (token==LE) || (token == GE)
+		||(token==GT) || (token==NE)) {
     TreeNode * p = newExpNode(OpK);
     if (p!=NULL) {
       p->child[0] = t;
@@ -196,12 +427,12 @@ TreeNode * exp(void)
     }
     match(token);
     if (t!=NULL)
-      t->child[1] = simple_exp();
+      t->child[1] = additive_exp();
   }
   return t;
 }
 
-TreeNode * simple_exp(void)
+TreeNode * additive_exp(void)
 { TreeNode * t = term();
   while ((token==PLUS)||(token==MINUS))
   { TreeNode * p = newExpNode(OpK);
@@ -233,33 +464,76 @@ TreeNode * term(void)
 
 TreeNode * factor(void)
 { TreeNode * t = NULL;
-  switch (token) {
-    case NUM :
-      t = newExpNode(ConstK);
-      if ((t!=NULL) && (token==NUM))
-        t->attr.val = atoi(tokenString);
-      match(NUM);
-      break;
-    case ID :
-      t = newExpNode(IdK);
-      if ((t!=NULL) && (token==ID))
-        t->attr.name = copyString(tokenString);
-      match(ID);
-      break;
-    case LPAREN :
-      match(LPAREN);
-      t = exp();
-      match(RPAREN);
-      break;
-    default:
-      syntaxError("unexpected token -> ");
-      printToken(token,tokenString);
-      token = getToken();
-      break;
-    }
-  return t;
+		switch (token) {
+				case NUM :
+						t = newExpNode(ConstK);
+						if ((t!=NULL) && (token==NUM))
+								t->attr.val = atoi(tokenString);
+						match(NUM);
+						break;
+				case ID :
+						keepTrack();
+						match(ID);
+						if(token == LPAREN){
+								backToTrack();
+								token = getToken();
+								t = call();
+						}else{ //[ or other thing
+								backToTrack();
+								token = getToken();
+								t = var();	  
+						}
+						break;
+				case LPAREN :
+						match(LPAREN);
+						t = exp();
+						match(RPAREN);
+						break;
+				default:
+						syntaxError("unexpected token -> ");
+						printToken(token,tokenString);
+						token = getToken();
+						break;
+		}
+		return t;
 }
 
+TreeNode * call(void)
+{
+	TreeNode * t = newExpNode(CallK);
+	t->attr.name = copyString(tokenString);
+	match(ID);
+	match(LPAREN);
+	TreeNode * p = args();
+	match(RPAREN);
+	t->child[0] = p;
+	return t;
+}
+
+TreeNode * args(void)
+{
+	TreeNode * t = NULL;
+	while(token != RPAREN){
+				t = exp();
+				TreeNode * p = t;
+				while (token!= RPAREN)	
+				{ 
+						match(COMMA);
+						TreeNode * q;
+						q = exp();
+						if (q!=NULL) {
+								if (t==NULL) 
+									t = p = q;
+								else /* now p cannot be NULL either */
+								{ p->sibling = q;
+										p = q;
+								}
+						}
+				}
+		
+	}
+	return t;
+}
 /****************************************/
 /* the primary function of the parser   */
 /****************************************/

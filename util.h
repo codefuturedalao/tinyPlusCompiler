@@ -13,12 +13,17 @@
  */
 void printToken( TokenType, const char* );
 
-/* Function newStmtNode creates a new statement
+/* Function newProgNode creates a new Program 
  * node for syntax tree construction
  */
 TreeNode * newProgNode();
 
-/* Function newStmtNode creates a new statement
+/* Function newParamNode creates a new parameter 
+ * node for syntax tree construction
+ */
+TreeNode * newParamNode(ParamKind);
+
+/* Function newDeclNode creates a new declaration 
  * node for syntax tree construction
  */
 TreeNode * newDeclNode(DeclKind);
